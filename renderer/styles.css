@@ -1,0 +1,655 @@
+:root {
+  --accent: #FF6B2C;
+  --accent-hi: #FFB347;
+  --accent-deep: #E63946;
+  --ember: #FF8C42;
+  --glow: rgba(255, 107, 44, 0.5);
+  --soft: rgba(255, 107, 44, 0.13);
+  --softer: rgba(230, 57, 70, 0.06);
+  --halo: rgba(255, 107, 44, 0.05);
+  --top: rgba(255, 107, 44, 0.06);
+  --artglow: rgba(255, 107, 44, 0.09);
+  --barglow: rgba(255, 107, 44, 0.34);
+  --livetx: rgba(255, 200, 160, 0.55);
+  --on-bg: linear-gradient(90deg, rgba(255, 107, 44, 0.16), rgba(230, 57, 70, 0.06) 60%, transparent);
+  --ghost-bg: linear-gradient(135deg, #c0392b, #6b1d12);
+  --ink: #f4eeea;
+  --ink-dim: rgba(255, 245, 238, 0.5);
+  --ink-faint: rgba(255, 245, 238, 0.3);
+  --glass: rgba(6, 4, 10, 0.85);
+  --line: rgba(255, 255, 255, 0.07);
+  --hi: rgba(255, 255, 255, 0.04);
+  --radius: 18px;
+  --font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --out: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[hidden] { display: none !important; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--font);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Paint is contained to the card so frames never invalidate the whole window. */
+.card {
+  width: 580px;
+  height: 280px;
+  /* 30px transparent gutter so the shadow fades out instead of being
+     hard-clipped at the window edge (the faint "rectangle" artifact). */
+  margin: 30px;
+  padding: 16px 22px 14px;
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  contain: layout paint;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 0 48px rgba(0, 0, 0, 0.45),
+    0 0 120px var(--halo),
+    inset 0 1px 0 var(--hi),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  transition: opacity 0.6s var(--out), filter 0.6s var(--out), transform 0.6s var(--out);
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  top: -70px; left: -44px; right: -44px;
+  height: 160px;
+  background: radial-gradient(ellipse at 50% 0%, var(--top), transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Static pre-blurred bitmap (baked on a canvas once per track): zero per-frame cost. */
+.wash {
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform: scale(1.05) translateZ(0);
+}
+.card.playing .wash { opacity: 0.38; }
+.card.paused .wash { opacity: 0.1; }
+.wash.fade { animation: washIn 0.9s var(--out) both; }
+/* Slow breathing zoom while playing: transform-only, stays composited. */
+.card.playing .wash { animation: breathe 18s ease-in-out infinite alternate; }
+.card.playing .wash.fade { animation: washIn 0.9s var(--out) both, breathe 18s ease-in-out 0.9s infinite alternate; }
+@keyframes washIn { from { opacity: 0; } }
+@keyframes breathe { from { transform: scale(1.05); } to { transform: scale(1.13); } }
+
+.haze {
+  position: absolute;
+  inset: -45%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background:
+    radial-gradient(38% 46% at 24% 30%, var(--soft), transparent 70%),
+    radial-gradient(44% 42% at 76% 70%, var(--softer), transparent 72%);
+  /* Gentle drift: transform-only ambient motion, zero paint cost. */
+  animation: drift 14s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: translate3d(-2%, 1%, 0); }
+  to { transform: translate3d(2%, -1%, 0); }
+}
+.card.paused .haze { opacity: 0.12; }
+
+.shine {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 28%),
+    radial-gradient(130% 90% at 12% -15%, rgba(255, 255, 255, 0.10), transparent 58%);
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  top: -25%; bottom: -25%;
+  left: -70%;
+  width: 45%;
+  transform: skewX(-18deg);
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+}
+.shine.swap::after { animation: sheen 0.95s var(--out); }
+@keyframes sheen {
+  0% { left: -70%; opacity: 0; }
+  12% { opacity: 1; }
+  100% { left: 125%; opacity: 0; }
+}
+
+/* Static gradient border: painted once, never animated per-frame. */
+.edge {
+  position: absolute;
+  inset: -1px;
+  z-index: 3;
+  pointer-events: none;
+  padding: 1px;
+  overflow: hidden;
+  border-radius: calc(var(--radius) + 1px);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.8;
+  background: conic-gradient(
+    from 210deg,
+    transparent 0deg,
+    var(--accent) 34deg,
+    var(--accent-hi) 60deg,
+    transparent 100deg,
+    transparent 190deg,
+    var(--accent-deep) 250deg,
+    transparent 310deg
+  );
+}
+.card.paused .edge { opacity: 0.28; }
+
+.card.idle {
+  opacity: 0;
+  transform: scale(0.96) translateY(4px);
+  pointer-events: none;
+}
+.card.paused {
+  opacity: 0.3;
+  filter: saturate(0.4) brightness(0.7);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  position: relative;
+  z-index: 2;
+  contain: layout style;
+}
+
+.artbox { flex: 0 0 60px; height: 60px; position: relative; }
+.artbox::after {
+  content: "";
+  position: absolute;
+  inset: 2px -12px -16px -2px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  opacity: 0.22;
+  filter: blur(20px);
+  z-index: -1;
+}
+.artbox::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 13px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.45) 50%, transparent 68%);
+  background-size: 260% 100%;
+  background-position: 160% 0;
+}
+.artbox.swap::before { animation: artSheen 0.85s var(--out); }
+@keyframes artSheen {
+  0% { opacity: 0; background-position: 160% 0; }
+  25% { opacity: 0.9; }
+  100% { opacity: 0; background-position: -70% 0; }
+}
+
+.art {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 0 28px var(--artglow);
+}
+.art.ghost {
+  display: none;
+  place-items: center;
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.85);
+  background: var(--ghost-bg);
+}
+.art.ghost.show { display: grid; }
+
+.meta { min-width: 0; flex: 1; }
+.meta.swap { animation: slidein 0.5s var(--out) both; }
+@keyframes slidein {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.title {
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+}
+.artist {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-dim);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flags { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.eq { display: flex; align-items: flex-end; gap: 2.5px; height: 15px; }
+.eq span {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  transform-origin: bottom;
+  background: linear-gradient(180deg, var(--accent-hi), var(--accent-deep));
+}
+.eq span:nth-child(1) { transform: scaleY(0.55); }
+.eq span:nth-child(2) { transform: scaleY(0.95); }
+.eq span:nth-child(3) { transform: scaleY(0.7); }
+.eq span:nth-child(4) { transform: scaleY(0.85); }
+/* Dancing bars while playing: scaleY only, tiny paint area. */
+.card.playing .eq span { animation: eqdance 0.9s ease-in-out infinite; }
+.card.playing .eq span:nth-child(1) { animation-delay: 0s; animation-duration: 0.82s; }
+.card.playing .eq span:nth-child(2) { animation-delay: 0.14s; animation-duration: 0.66s; }
+.card.playing .eq span:nth-child(3) { animation-delay: 0.28s; animation-duration: 0.94s; }
+.card.playing .eq span:nth-child(4) { animation-delay: 0.07s; animation-duration: 0.74s; }
+@keyframes eqdance {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.card.paused .eq { display: none; }
+
+.live {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--livetx);
+  text-transform: uppercase;
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--glow), 0 0 2px var(--accent);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.8); }
+}
+
+/* --- progress: transform-only, compositor-driven ------------------------ */
+
+.barrow {
+  margin-top: 11px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  position: relative;
+  z-index: 2;
+  contain: layout style;
+}
+.time {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  min-width: 26px;
+}
+.time:last-child { text-align: right; }
+.bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.07);
+  position: relative;
+}
+.fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent) 30%, var(--ember) 60%, var(--accent-hi));
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+.knob {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--accent-hi);
+  box-shadow: 0 0 10px var(--glow);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  will-change: transform;
+}
+.card.playing .knob { opacity: 1; }
+
+/* --- lyrics: own composited scroll layer, opacity-only distance fade ---- */
+
+.lyrics {
+  position: relative;
+  margin-top: 9px;
+  height: 156px;
+  overflow: hidden;
+  z-index: 2;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 88%, transparent 100%);
+}
+.lyrics.pop { animation: rise 0.55s var(--out) both; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Composited scroll layer: line changes move on the GPU, never repaint. */
+.rows {
+  transition: transform 0.5s var(--out);
+  will-change: transform;
+}
+
+.row {
+  position: relative;
+  height: 30px;
+  line-height: 30px;
+  padding: 0 10px 0 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Distance fade is opacity-only: no blur/filter repaints on any frame. */
+  opacity: calc(1 - min(var(--d, 1), 4) * 0.24);
+  transition: color 0.25s ease, opacity 0.35s ease, transform 0.45s var(--out), background 0.25s ease;
+}
+.row::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  background: linear-gradient(180deg, var(--accent-hi), var(--accent));
+  opacity: 0;
+  transition: height 0.35s var(--spring), opacity 0.3s ease;
+}
+.row.was { color: var(--ink-faint); }
+.row.flat { color: rgba(255, 245, 238, 0.45); }
+.row > span {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+.row.on {
+  font-weight: 700;
+  letter-spacing: 0;
+  opacity: 1;
+  transform: translateX(6px);
+  background: var(--on-bg);
+  animation: pop 0.45s var(--spring);
+}
+/* Karaoke sweep on the active line: --fill tracks how much of the line has
+   been sung (10 Hz on one element). Hard-stop gradient, static otherwise. */
+.row.on > span {
+  background: linear-gradient(
+    90deg,
+    #ffffff 0, #ffffff var(--fill, 100%),
+    rgba(255, 200, 160, 0.45) var(--fill, 100%), rgba(255, 200, 160, 0.45) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.row.on::before { height: 16px; opacity: 1; }
+/* Transform + opacity only: stays on the compositor. */
+@keyframes pop {
+  0% { transform: translateX(6px) scale(0.98); opacity: 0.6; }
+  60% { transform: translateX(6px) scale(1.02); opacity: 1; }
+  100% { transform: translateX(6px) scale(1); opacity: 1; }
+}
+
+.status {
+  margin-top: 9px;
+  height: 156px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--ink-dim);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  padding: 0 32px;
+  z-index: 2;
+  line-height: 1.6;
+  contain: layout style;
+}
+.status.pop { animation: rise 0.55s var(--out) both; }
+.status .big {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(255, 245, 238, 0.85);
+  margin-bottom: 5px;
+}
+/* Breathing dots while searching for lyrics: opacity-only. */
+.status.seek .big { animation: blink 1.2s ease-in-out infinite; }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.credit {
+  position: absolute;
+  bottom: 7px;
+  right: 14px;
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: rgba(255, 245, 238, 0.2);
+  z-index: 4;
+  user-select: none;
+  pointer-events: none;
+}
+
+.card:not(.idle) .top { animation: rise 0.5s var(--out) both; }
+.card:not(.idle) .barrow { animation: rise 0.5s var(--out) 0.06s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .row, .rows, .fill, .knob, .wash { transition-duration: 0.01s !important; }
+  .card:not(.idle) .top, .card:not(.idle) .barrow,
+  .lyrics.pop, .status.pop, .row.on,
+  .artbox.swap::before, .shine.swap::after, .wash.fade { animation: none !important; }
+}
+
+/* --- fullscreen stage: opaque, themed, centered ---------------------------
+   The window takes over the screen; page goes fully opaque and the layout
+   becomes a centered stage driven by the same album-art palette. */
+body.fs { background: #06060c; }
+
+body.fs .card {
+  width: auto;
+  height: auto;
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 4vh 6vw;
+  background: linear-gradient(180deg, rgba(6, 6, 12, 0.62), rgba(6, 6, 12, 0.86));
+}
+/* Paused dimming is for the corner overlay; the stage stays alive. */
+body.fs .card.paused { opacity: 1; filter: none; }
+body.fs .card.idle { opacity: 1; transform: none; }
+
+body.fs .wash { inset: -5%; opacity: 0.5; }
+body.fs .edge { border-radius: 0; opacity: 0.5; }
+
+body.fs .top { width: min(880px, 100%); gap: 22px; }
+body.fs .artbox { flex-basis: 148px; height: 148px; }
+body.fs .art { width: 148px; height: 148px; border-radius: 26px; }
+body.fs .art.ghost { font-size: 56px; }
+body.fs .title { font-size: 34px; }
+body.fs .artist { font-size: 16px; margin-top: 6px; }
+body.fs .flags { gap: 14px; }
+body.fs .eq { height: 22px; }
+body.fs .eq span { width: 4px; }
+body.fs .live { font-size: 12px; }
+
+body.fs .barrow { width: min(880px, 100%); }
+body.fs .time { font-size: 13px; min-width: 34px; }
+body.fs .bar { height: 5px; }
+body.fs .knob { width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; }
+
+body.fs .lyrics { width: min(880px, 100%); height: min(44vh, 364px); margin-top: 4px; }
+body.fs .row {
+  height: 52px;
+  line-height: 52px;
+  font-size: 23px;
+  text-align: center;
+  padding: 0 20px;
+}
+body.fs .row::before { display: none; }
+/* Centered stage: grow instead of slide. */
+body.fs .row.on { transform: scale(1.05); animation: none; }
+
+body.fs .status { height: auto; min-height: 140px; font-size: 15px; }
+body.fs .credit { display: none; }
+
+/* Lyric size cycler (Aa button): bigger stage text, same scroll math. */
+body.fs.fs-lg .row { height: 60px; line-height: 60px; font-size: 27px; }
+body.fs.fs-xl .row { height: 70px; line-height: 70px; font-size: 32px; }
+
+/* Backdrop theme cycler (◑ button): art wash / midnight / aurora. */
+body.fs[data-bg="midnight"] .card {
+  background: linear-gradient(180deg, #04060e, #0a1030);
+}
+body.fs[data-bg="midnight"] .wash { opacity: 0.12; }
+body.fs[data-bg="aurora"] .card {
+  background: linear-gradient(140deg, rgba(10, 4, 20, 0.55), rgba(4, 8, 20, 0.8));
+}
+body.fs[data-bg="aurora"] .wash { opacity: 0.75; }
+body.fs[data-bg="aurora"] .haze { opacity: 0.85; }
+
+/* Fullscreen transport: glass buttons, accent play. Clicks work here —
+   the stage is a deliberate takeover, unlike the click-through corner. */
+.fsctrls { display: none; }
+body.fs .fsctrls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: min(880px, 100%);
+  margin-top: -8px;
+}
+body.fs .fsctrls button {
+  font-family: "Segoe UI Symbol", "Segoe UI", system-ui, sans-serif;
+  font-size: 17px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: rgba(255, 245, 238, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+body.fs .fsctrls button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent);
+  color: #fff;
+}
+body.fs .fsctrls button:active { transform: scale(0.93); }
+body.fs .fsctrls .sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
+body.fs .fsctrls #fsSize {
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 15px;
+}
+body.fs .fsctrls #fsPP {
+  width: 58px;
+  height: 58px;
+  font-size: 20px;
+  color: #fff;
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 0 28px var(--glow);
+}
+body.fs .fsctrls #fsPP:hover { background: var(--accent-hi); }
+
+.fsexit { display: none; }
+body.fs .fsexit {
+  display: flex;
+  align-items: center;
+  position: fixed;
+  top: 22px;
+  right: 26px;
+  z-index: 50;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(255, 245, 238, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 99px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+body.fs .fsexit:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent);
+  color: #fff;
+}

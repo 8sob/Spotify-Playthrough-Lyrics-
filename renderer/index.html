@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LyricOverlay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="card" class="card idle">
+    <div id="wash" class="wash" aria-hidden="true"></div>
+    <div class="haze" aria-hidden="true"></div>
+    <div class="shine" aria-hidden="true"></div>
+    <div class="edge" aria-hidden="true"></div>
+
+    <header class="top">
+      <div class="artbox">
+        <img id="art" class="art" alt="" draggable="false">
+        <div id="artGhost" class="art ghost" hidden>&#9835;</div>
+      </div>
+      <div class="meta">
+        <div id="title" class="title"></div>
+        <div id="artist" class="artist"></div>
+      </div>
+      <div class="flags">
+        <div id="eq" class="eq" hidden aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <div id="live" class="live" hidden><span class="dot"></span><span>LIVE</span></div>
+      </div>
+    </header>
+
+    <div class="barrow">
+      <span id="tCur" class="time">0:00</span>
+      <div id="bar" class="bar">
+        <div id="fill" class="fill"></div>
+        <div id="knob" class="knob"></div>
+      </div>
+      <span id="tEnd" class="time">0:00</span>
+    </div>
+
+    <div id="fsCtrls" class="fsctrls" hidden>
+      <button data-cmd="prev" title="Previous">&#9612;&#9664;</button>
+      <button data-cmd="toggle" id="fsPP" title="Play / pause">&#10074;&#10074;</button>
+      <button data-cmd="next" title="Next">&#9654;&#9612;</button>
+      <span class="sep"></span>
+      <button data-cmd="voldn" title="Volume down">&#128265;</button>
+      <button data-cmd="mute" title="Mute">&#128263;</button>
+      <button data-cmd="volup" title="Volume up">&#128266;</button>
+      <span class="sep"></span>
+      <button id="fsSize" title="Lyric size">Aa</button>
+      <button id="fsTheme" title="Backdrop theme">&#9681;</button>
+    </div>
+
+    <section id="lyrics" class="lyrics" hidden><div id="rows" class="rows"></div></section>
+    <section id="status" class="status" hidden></section>
+
+    <button id="fsExit" class="fsexit" hidden>&#x2715;&nbsp;Exit fullscreen</button>
+    <div class="credit">made by 8sob</div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

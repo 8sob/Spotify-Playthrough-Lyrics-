@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LyricOverlay controls</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: transparent; overflow: hidden; }
+  body {
+    display: flex; align-items: center; justify-content: flex-end;
+    height: 100vh; padding-right: 2px;
+  }
+  .bar {
+    display: flex; align-items: center; gap: 2px;
+    background: rgba(10, 6, 14, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 99px;
+    padding: 4px 6px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  }
+  button {
+    font-family: "Segoe UI Symbol", "Segoe UI", system-ui, sans-serif;
+    font-size: 12px; line-height: 1;
+    width: 28px; height: 28px;
+    display: grid; place-items: center;
+    color: rgba(255, 245, 238, 0.72);
+    background: transparent;
+    border: none; border-radius: 50%;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  button:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+  button:active { transform: scale(0.92); }
+  button.accent { color: var(--accent, #FF6B2C); }
+  button.accent:hover { color: #fff; background: rgba(255, 107, 44, 0.22); }
+  .sep { width: 1px; height: 16px; background: rgba(255, 255, 255, 0.12); margin: 0 3px; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <button id="prev" title="Previous">&#9612;&#9664;</button>
+    <button id="pp" title="Play / pause">&#10074;&#10074;</button>
+    <button id="next" title="Next">&#9654;&#9612;</button>
+    <div class="sep"></div>
+    <button id="vdn" title="Volume down">&#128265;</button>
+    <button id="mute" title="Mute">&#128263;</button>
+    <button id="vup" title="Volume up">&#128266;</button>
+    <div class="sep"></div>
+    <button id="fs" class="accent" title="Fullscreen">&#x26F6;</button>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id)
+    const send = (a) => { if (window.overlay && window.overlay.cmd) window.overlay.cmd(a) }
+    $('prev').addEventListener('click', () => send('prev'))
+    $('next').addEventListener('click', () => send('next'))
+    $('pp').addEventListener('click', () => send('toggle'))
+    $('vdn').addEventListener('click', () => send('voldn'))
+    $('mute').addEventListener('click', () => send('mute'))
+    $('vup').addEventListener('click', () => send('volup'))
+    $('fs').addEventListener('click', () => { if (window.overlay && window.overlay.enterFS) window.overlay.enterFS() })
+    // Live play/pause glyph, updated ONLY on change. Rewriting innerHTML
+    // on every push recreates the button content and can swallow a click
+    // that lands mid-press (mousedown/up on different nodes = no click).
+    let lastPlaying = null
+    if (window.overlay && window.overlay.onState) {
+      window.overlay.onState((s) => {
+        const p = !!(s && s.isPlaying)
+        if (p === lastPlaying) return
+        lastPlaying = p
+        $('pp').innerHTML = p ? '&#10074;&#10074;' : '&#9654;'
+      })
+    }
+  </script>
+</body>
+</html>

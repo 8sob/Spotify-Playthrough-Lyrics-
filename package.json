@@ -1,0 +1,43 @@
+{
+  "name": "spotify-lyrics-overlay",
+  "version": "2.0.0",
+  "description": "Transparent always-on-top overlay showing synced lyrics for your current Spotify song",
+  "main": "main.js",
+  "author": "8sob",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "start:demo": "electron . --demo",
+    "build": "electron-builder --win portable",
+    "build:installer": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ttvll.spotifylyricsoverlay",
+    "productName": "LyricOverlay",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "renderer/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "portable": {
+      "artifactName": "LyricOverlay.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "LyricOverlay"
+    }
+  }
+}
